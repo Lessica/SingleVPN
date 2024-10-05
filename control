@@ -1,5 +1,5 @@
 Package: com.82flex.singlevpn
-Name: Single VPM
+Name: Single VPN
 Version: 1.0
 Architecture: iphoneos-arm
 Description: Combine VPN state and wireless state into one icon.
