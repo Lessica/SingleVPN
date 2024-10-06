@@ -9,6 +9,7 @@
 @end
 
 @interface _UIStatusBarDataWifiEntry : NSObject
+@property(assign, nonatomic) long long displayValue;
 @end
 
 @interface _UIStatusBarData : NSObject
@@ -57,6 +58,7 @@
 
 @interface _UIStatusBarWifiItem : _UIStatusBarItem
 @property(nonatomic, strong) NSNumber *smIsVPNEnabled;
+@property(nonatomic, strong) NSNumber *smDisplayValue;
 - (UIColor *)_fillColorForUpdate:(_UIStatusBarItemUpdate *)update entry:(_UIStatusBarDataWifiEntry *)entry;
 @end
 

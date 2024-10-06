@@ -64,13 +64,28 @@ static void ReloadPrefs() {
 %hook _UIStatusBarWifiItem
 
 %property (nonatomic, strong) NSNumber *smIsVPNEnabled;
+%property (nonatomic, strong) NSNumber *smDisplayValue;
 
 - (id)applyUpdate:(_UIStatusBarItemUpdate *)update toDisplayItem:(_UIStatusBarDisplayItem *)displayItem {
     _isVPNEnabled = update.data.vpnEntry.enabled;
+    long long displayValue = update.data.wifiEntry.displayValue;
+
+    HBLogWarn(@"displayValue: %lld", displayValue);
 
     id result = %orig;
+    BOOL needsReload = NO;
+
     if ([self.smIsVPNEnabled boolValue] != _isVPNEnabled) {
         self.smIsVPNEnabled = @(_isVPNEnabled);
+        needsReload = YES;
+    }
+
+    if ([self.smDisplayValue longLongValue] != displayValue) {
+        self.smDisplayValue = @(displayValue);
+        needsReload = YES;
+    }
+
+    if (needsReload) {
         for (_UIStatusBarDisplayItem *item in self.displayItems.allValues) {
             %orig(update, item);
         }
