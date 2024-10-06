@@ -70,8 +70,6 @@ static void ReloadPrefs() {
     _isVPNEnabled = update.data.vpnEntry.enabled;
     long long displayValue = update.data.wifiEntry.displayValue;
 
-    HBLogWarn(@"displayValue: %lld", displayValue);
-
     id result = %orig;
     BOOL needsReload = NO;
 
