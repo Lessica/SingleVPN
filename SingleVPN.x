@@ -7,20 +7,59 @@
     [text isEqualToString:@"4G"] || [text isEqualToString:@"5G"] || \
     [text isEqualToString:@"LTE"])
 
+static BOOL _isEnabled = NO;
 static BOOL _isVPNEnabled = NO;
+static UIColor *_darkReplacementColor = nil;
+static UIColor *_lightReplacementColor = nil;
+
+static UIColor *smColorWithHexString(NSString *hexString) {
+    NSScanner *scanner = [NSScanner scannerWithString:hexString];
+    if ([hexString hasPrefix:@"#"]) {
+        [scanner setScanLocation:1];
+    }
+
+    unsigned int hexValue;
+    if (![scanner scanHexInt:&hexValue]) {
+        return nil;
+    }
+
+    CGFloat red = ((hexValue & 0xFF0000) >> 16) / 255.0;
+    CGFloat green = ((hexValue & 0x00FF00) >> 8) / 255.0;
+    CGFloat blue = (hexValue & 0x0000FF) / 255.0;
+
+    return [UIColor colorWithRed:red green:green blue:blue alpha:1];
+}
 
 static UIColor *smColorWithTextColor(UIColor *textColor) {
     CGFloat red, green, blue, alpha;
     [textColor getRed:&red green:&green blue:&blue alpha:&alpha];
-
     BOOL isKindOfBlack = red < 0.5 && green < 0.5 && blue < 0.5;
-
-    // rgba(50, 199, 89, 1.0)
-    // rgba(44, 208, 87, 1.0)
-    return isKindOfBlack
-        ? [UIColor colorWithRed:0.19607843137254902 green:0.7803921568627451 blue:0.34901960784313724 alpha:1]
-        : [UIColor colorWithRed:0.17254901960784313 green:0.8156862745098039 blue:0.3411764705882353 alpha:1];
+    return isKindOfBlack ? _lightReplacementColor : _darkReplacementColor;
 }
+
+static void ReloadPrefs() {
+    static NSUserDefaults *prefs = nil;
+    if (!prefs) {
+        prefs = [[NSUserDefaults alloc] initWithSuiteName:@"com.82flex.singlevpnprefs"];
+    }
+
+    NSDictionary *settings = [prefs dictionaryRepresentation];
+    _isEnabled = settings[@"IsEnabled"] ? [settings[@"IsEnabled"] boolValue] : YES;
+    
+    if (settings[@"ForegroundColorLight"]) {
+        _lightReplacementColor = smColorWithHexString(settings[@"ForegroundColorLight"]);
+    } else {
+        _lightReplacementColor = [UIColor colorWithRed:0.19607843137254902 green:0.7803921568627451 blue:0.34901960784313724 alpha:1];
+    }
+
+    if (settings[@"ForegroundColorDark"]) {
+        _darkReplacementColor = smColorWithHexString(settings[@"ForegroundColorDark"]);
+    } else {
+        _darkReplacementColor = [UIColor colorWithRed:0.17254901960784313 green:0.8156862745098039 blue:0.3411764705882353 alpha:1];
+    }
+}
+
+%group SingleVPN
 
 %hook _UIStatusBarWifiItem
 
@@ -101,3 +140,23 @@ static UIColor *smColorWithTextColor(UIColor *textColor) {
 }
 
 %end
+
+%end // SingleVPN
+
+%ctor {
+    ReloadPrefs();
+    if (!_isEnabled) {
+        return;
+    }
+
+    CFNotificationCenterAddObserver(
+        CFNotificationCenterGetDarwinNotifyCenter(), 
+        NULL, 
+        (CFNotificationCallback)ReloadPrefs, 
+        CFSTR("com.82flex.singlevpnprefs/saved"), 
+        NULL, 
+        CFNotificationSuspensionBehaviorCoalesce
+    );
+
+    %init(SingleVPN);
+}
